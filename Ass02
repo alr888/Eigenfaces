@@ -1,0 +1,93 @@
+import numpy as n_
+import matplotlib.pyplot as p_
+import glob
+from PIL import Image
+from scipy import misc
+
+
+smpl = misc.imread("facenorm.0001.png")
+smpl_sz = smpl.size
+smpl_shp = smpl.shape
+r_smpl_shp = smpl_shp[::-1]
+
+def img2vec(im):
+	im = im.resize((smpl_shp), Image.BICUBIC)
+	v = n_.reshape(im, (smpl_sz, 1))
+	v = n_.double(v) / 255.
+	v = v.reshape(smpl_sz,1)
+	return v
+
+def vec2img(v):     
+	v = v.reshape((r_smpl_shp))
+	v = n_.fix(255.*v)      
+	v8 = n_.zeros((r_smpl_shp), n_.uint8)
+	v8[:,:] = v[:,:]     
+	imrecovered = Image.fromarray(v8)     
+	return imrecovered  
+
+def vec2im2(e):   
+	print n_.min(e), n_.max(e)   
+	scale = 1. / (n_.max(e) - n_.min(e))   
+	e = e - n_.min(e)   
+	e = e * scale   
+	imrecovered = vec2img(e)   
+	return imrecovered 
+
+#cnt_png = len(glob.glob('face*.png'))
+
+#print cnt_png
+
+matwix = n_.zeros(shape=(smpl_sz,1))
+
+#print matwix
+
+ct = 0
+
+for filename in glob.glob("*.png"):
+	im=Image.open(filename)
+	im2 = img2vec(im)
+	if ct < 1:
+		matwix = im2 #matwix[:,ct] = im2
+	else:
+		matwix = n_.hstack((matwix, im2))
+	#im3 = vec2img(im2)
+	#im4 = vec2im2(im3)
+	ct += 1
+	#im.show()
+	
+
+new_m_img = matwix.mean(1) #mean of the matrix of images
+
+nw_img2 = new_m_img.reshape(smpl_sz,1)
+
+n_res_mtx = matwix - nw_img2 #matrix of images less mean
+
+U, s, V = n_.linalg.svd(n_res_mtx, full_matrices=True)
+#print U  #, V.shape, s.shape
+#print s.shape
+#print V.shape
+
+#print n_res_mtx.shape
+for i in range(0, 14):
+	im3 = vec2img(U[:,i])
+	im4 = vec2im2(im3)
+	im4.show()
+
+
+#eig_vals, eig_vecs = n_.linalg.eig(n_res_mtx)
+
+#print eig_vecs
+#print "*********"
+#print eig_vals
+#print n_res_mtx
+#imx = vec2img(new_m_img)
+#imy = vec2im2(imx)
+
+#imy.show()
+
+#print new_m_img
+
+#print matwix
+#im4.show()
+
+#print matwix
