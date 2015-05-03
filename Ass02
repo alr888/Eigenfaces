@@ -26,7 +26,7 @@ def vec2img(v):
 	return imrecovered  
 
 def vec2im2(e):   
-	print n_.min(e), n_.max(e)   
+	#print n_.min(e), n_.max(e)   
 	scale = 1. / (n_.max(e) - n_.min(e))   
 	e = e - n_.min(e)   
 	e = e * scale   
@@ -63,16 +63,41 @@ nw_img2 = new_m_img.reshape(smpl_sz,1)
 n_res_mtx = matwix - nw_img2 #matrix of images less mean
 
 U, s, V = n_.linalg.svd(n_res_mtx, full_matrices=True)
-#print U  #, V.shape, s.shape
+#print U.shape  #, V.shape, s.shape
 #print s.shape
 #print V.shape
 
+#x_axis = s
+
+#print s
+x_axis = n_.zeros(shape=(15,1))
+y_axis = n_.zeros(shape=(15,1))
+
+for i in range(0, len(s)):
+	x_axis[i] = s[i]**2
+
+
+#y_axis = s
+y_axis = n_.linspace(0,1,15)
+#x_axis = n_.array([20.,40., 60.,  80.,  160., 170.]) 
+#y_axis = n_.array([2.,7., 8.,  9.,  8.5, 10.])
+
+
+#print x_axis
+#print y_axis
+
+p_.plot(x_axis,y_axis,'k-')
+#p_.ylabel('y axis')
+#p_.xlabel('x axis')
+
 #print n_res_mtx.shape
+
 for i in range(0, 14):
 	im3 = vec2img(U[:,i])
 	im4 = vec2im2(im3)
 	im4.show()
 
+p_.show()
 
 #eig_vals, eig_vecs = n_.linalg.eig(n_res_mtx)
 
