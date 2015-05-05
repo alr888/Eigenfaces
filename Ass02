@@ -4,12 +4,13 @@ import glob
 from PIL import Image
 from scipy import misc
 
-
+#parameters to initialize containers
 smpl = misc.imread("facenorm.0001.png")
 smpl_sz = smpl.size
 smpl_shp = smpl.shape
 r_smpl_shp = smpl_shp[::-1]
 
+#function to convert image to vector
 def img2vec(im):
 	im = im.resize((smpl_shp), Image.BICUBIC)
 	v = n_.reshape(im, (smpl_sz, 1))
@@ -17,6 +18,7 @@ def img2vec(im):
 	v = v.reshape(smpl_sz,1)
 	return v
 
+# two functions to convert a column vector back into an image
 def vec2img(v):     
 	v = v.reshape((r_smpl_shp))
 	v = n_.fix(255.*v)      
@@ -26,93 +28,96 @@ def vec2img(v):
 	return imrecovered  
 
 def vec2im2(e):   
-	#print n_.min(e), n_.max(e)   
+	#print n_.min(e), n_.max(e) #display mean and amx   
 	scale = 1. / (n_.max(e) - n_.min(e))   
 	e = e - n_.min(e)   
 	e = e * scale   
 	imrecovered = vec2img(e)   
 	return imrecovered 
 
-#cnt_png = len(glob.glob('face*.png'))
+matwix = n_.zeros(shape=(smpl_sz,1)) #matrix for Eigenfaces
+mtx_coeff = n_.zeros(shape=(smpl_sz,1)) #matrix for coefficients
+mtx_pics = n_.zeros(shape=(smpl_sz,1)) #matrix for Fourier Transformed pics
 
-#print cnt_png
-
-matwix = n_.zeros(shape=(smpl_sz,1))
-
-#print matwix
-
-ct = 0
+ct = 0 #counter for *png files
 
 for filename in glob.glob("*.png"):
 	im=Image.open(filename)
 	im2 = img2vec(im)
 	if ct < 1:
-		matwix = im2 #matwix[:,ct] = im2
+		matwix = im2
+		ft_face = im2	
 	else:
 		matwix = n_.hstack((matwix, im2))
-	#im3 = vec2img(im2)
-	#im4 = vec2im2(im3)
 	ct += 1
-	#im.show()
-	
 
 new_m_img = matwix.mean(1) #mean of the matrix of images
 
-nw_img2 = new_m_img.reshape(smpl_sz,1)
+nw_img2 = new_m_img.reshape(smpl_sz,1) #reshape needed as result is a (3085,) array
 
 n_res_mtx = matwix - nw_img2 #matrix of images less mean
 
 U, s, V = n_.linalg.svd(n_res_mtx, full_matrices=True)
-#print U.shape  #, V.shape, s.shape
-#print s.shape
-#print V.shape
+#print U.shape, V.shape, s.shape
 
-#x_axis = s
-
-#print s
 x_axis = n_.zeros(shape=(15,1))
 y_axis = n_.zeros(shape=(15,1))
 
+
+ft_face_mean = ft_face.mean(1) #get mean of image to be processed for Fourier Transform
+ft_face2 = ft_face - ft_face_mean
+
+
+ctx = 0 #counter used for storing coefficients
+
 for i in range(0, len(s)):
-	x_axis[i] = s[i]**2
+	y_axis[i] = (s[i]**2) 
+	a = n_.dot(ft_face2,s[i])
+	if ctx < 1:
+		mtx_coeff = a	
+	else:
+		mtx_coeff = n_.hstack((mtx_coeff, a))
+	ctx += 1
 
+#function to load Fourier Transformed faces
+def load_pics(f):
+    temp_pic = 0 
+    for p in range(0,f):
+    	temp_pic += n_.dot(mtx_coeff[:,p],s[p])
+    	#print temp_pic
+	a = temp_pic
+	print a.shape
+	return a
 
-#y_axis = s
-y_axis = n_.linspace(0,1,15)
-#x_axis = n_.array([20.,40., 60.,  80.,  160., 170.]) 
-#y_axis = n_.array([2.,7., 8.,  9.,  8.5, 10.])
+ctp = 0
 
-
-#print x_axis
-#print y_axis
-
-p_.plot(x_axis,y_axis,'k-')
-#p_.ylabel('y axis')
-#p_.xlabel('x axis')
-
-#print n_res_mtx.shape
-
+for fin in range(0,len(s)):
+	if ctp < 1:
+		mtx_pics = ft_face #matwix[:,ct] = im2	
+	else:
+		b = ft_face2
+		#b = load_pics(fin)
+		#print b.shape
+		#print fin
+		#b = b.reshape(smpl_sz,1)
+		mtx_pics = n_.hstack((mtx_pics, b))
+	ctp += 1
+'''
+#Loop to display Eigenfaces
 for i in range(0, 14):
-	im3 = vec2img(U[:,i])
-	im4 = vec2im2(im3)
+	im4 = vec2im2(U[:,i])
 	im4.show()
+'''
+#Loop to display Fourier Transformed Images
+for i in range(0,14):
+	fin_pic = vec2im2(mtx_pics[:,i])
+	fin_pic.show()
+
+
+#Statements to graph Eigenvalues
+x_axis = n_.linspace(0,1,15)
+p_.plot(x_axis,y_axis,'k-')
+p_.ylabel('y axis')
+p_.xlabel('x axis')
 
 p_.show()
-
-#eig_vals, eig_vecs = n_.linalg.eig(n_res_mtx)
-
-#print eig_vecs
-#print "*********"
-#print eig_vals
-#print n_res_mtx
-#imx = vec2img(new_m_img)
-#imy = vec2im2(imx)
-
-#imy.show()
-
-#print new_m_img
-
-#print matwix
-#im4.show()
-
-#print matwix
